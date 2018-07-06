@@ -28,7 +28,7 @@ export class CanvasState {
             var my = mouse.y;
             var polygons = myState.polygons;
             var l = polygons.length;
-            console.log(myState.paths)
+
             for( var i = 0; i < myState.paths.length; i++ ){
                 var path = myState.paths[i];
                 if ( myState.ctx.isPointInPath(path, mx, my)) {
