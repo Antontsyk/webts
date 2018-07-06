@@ -1,159 +1,151 @@
-var countElem = 0;
-var paths = [];
+let countElem: number = 0;
+let paths: Array<number> = [];
 
-function Polygon(way, fill) {
-    this.way = way;
-    this.fill = fill || '#AAAAAA';
-    this.id = countElem++;
+class Polygon {
+    id: number = countElem++;
+    way: Array<number>;
+    fill: string;
+    constructor( way: Array<number>, fill: string ){
+        this.way = way;
+        this.fill = fill || '#AAAAAA';
+    }
+    draw( ctx: any ){
+        let path: any = new Path2D();
+        for (let i = 0; i < this.way.length; i++) {
+            let x: number = this.way[i][0];
+            let y: number = this.way[i][1];
+            path.lineTo( x, y );
+        }
+        path.closePath();
+        ctx.fillStyle = this.fill;
+        ctx.fill(path);
+        paths.push(path);
+    }
 }
 
-Polygon.prototype.draw = function(ctx) {
-    var path = new Path2D();
-    for (var i = 0; i < this.way.length; i++) {
-        path.lineTo( this.way[i][0], this.way[i][1]);
-    }
-    path.closePath();
-    ctx.fillStyle = this.fill;
-    ctx.fill(path);
-    paths.push(path);
-}
+class CanvasState {
+    canvas: any;
+    width: number;
+    height: number;
+    ctx: any;
 
+    valid:boolean = false; // when set to false, the canvas will redraw everything
+    polygons: Array<number> = [];  // the collection of things to be drawn
+    dragging: boolean = false; // Keep track of when we are dragging
+    selection: object;
+    dragoffx: number = 0;
+    dragoffy: number = 0;
+    startPosition: any;
+    selectionColor:string = '#CC0000';
+    selectionWidth:number = 2;
 
-function CanvasState(canvas) {
-    // **** First some setup! ****
-    this.canvas = canvas;
-    this.width = canvas.width;
-    this.height = canvas.height;
-    this.ctx = canvas.getContext('2d');
-    // This complicates things a little but but fixes mouse co-ordinate problems
-    // when there's a border or padding. See getMouse for more detail
-    var stylePaddingLeft, stylePaddingTop, styleBorderLeft, styleBorderTop;
-    if (document.defaultView && document.defaultView.getComputedStyle) {
-        this.stylePaddingLeft = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingLeft'], 10)      || 0;
-        this.stylePaddingTop  = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingTop'], 10)       || 0;
-        this.styleBorderLeft  = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderLeftWidth'], 10)  || 0;
-        this.styleBorderTop   = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderTopWidth'], 10)   || 0;
-    }
-    // Some pages have fixed-position bars (like the stumbleupon bar) at the top or left of the page
-    // They will mess up mouse coordinates and this fixes that
-    var html = document.body.parentNode;
-    this.htmlTop = html.offsetTop;
-    this.htmlLeft = html.offsetLeft;
+    constructor( canvas: any ){
+        this.canvas = canvas;
+        this.width = canvas.width;
+        this.height = canvas.height;
+        this.ctx = canvas.getContext('2d');
+        const myState: any = this;
+        // Up, down, and move are for dragging
+        canvas.addEventListener('mousedown', function(e: any) {
+            var mouse = myState.getMouse(e);
+            var mx = mouse.x;
+            var my = mouse.y;
+            var polygons = myState.polygons;
+            var l = polygons.length;
 
-    this.valid = false; // when set to false, the canvas will redraw everything
-    this.polygons = [];  // the collection of things to be drawn
-    this.dragging = false; // Keep track of when we are dragging
-    this.selection = null;
-    this.dragoffx = 0;
-    this.dragoffy = 0;
-    this.startPosition = null;
+            for( var i = 0; i < paths.length; i++ ){
+                var path = paths[i];
+                if ( myState.ctx.isPointInPath(path, mx, my)) {
+                    var pol = myState.polygons[ i ];
+                    var startWay = myState.polygons[i].way.copyWithin();
+                    myState.dragoffx = -mx;
+                    myState.dragoffy = -my;
 
-    var myState = this;
-    // Up, down, and move are for dragging
-    canvas.addEventListener('mousedown', function(e) {
-        var mouse = myState.getMouse(e);
-        var mx = mouse.x;
-        var my = mouse.y;
-        var polygons = myState.polygons;
-        var l = polygons.length;
+                    myState.dragging = true;
+                    myState.selection = pol;
+                    myState.startPosition = new Array();
 
-        for( var i = 0; i < paths.length; i++ ){
-            var path = paths[i];
-            if ( myState.ctx.isPointInPath(path, mx, my)) {
-                var pol = myState.polygons[ i ];
-                var startWay = myState.polygons[i].way.copyWithin();
-                myState.dragoffx = -mx;
-                myState.dragoffy = -my;
+                    for( var k = 0; k < startWay.length; k++ ){
+                        myState.startPosition[k] = new Array();
+                        myState.startPosition[k][0] = startWay[k][0];
+                        myState.startPosition[k][1] = startWay[k][1];
+                    }
 
-                myState.dragging = true;
-                myState.selection = pol;
-                myState.startPosition = new Array();
+                    myState.valid = false;
+                    break;
+                    return;
+                }
+            }
 
-                for( var k = 0; k < startWay.length; k++ ){
-                    myState.startPosition[k] = new Array();
-                    myState.startPosition[k][0] = startWay[k][0];
-                    myState.startPosition[k][1] = startWay[k][1];
+            // havent returned means we have failed to select anything.
+            // If there was an object selected, we deselect it
+            if (!myState.selection) {
+                myState.selection = null;
+                myState.valid = false; // Need to clear the old selection border
+            }
+        }, true);
+        canvas.addEventListener('mousemove', function(e: any) {
+            if (myState.dragging){
+                var mouse = myState.getMouse(e);
+
+                var newWay = new Array();
+
+                for( var i = 0; i < myState.selection.way.length; i++ ){
+                    newWay[i] = new Array();
+                    newWay[i][0] = myState.selection.way[i][0] + myState.dragoffx + mouse.x;
+                    newWay[i][1] = myState.selection.way[i][1] + myState.dragoffy + mouse.y;
                 }
 
-                myState.valid = false;
-                break;
-                return;
+                if(!myState.isEnd(newWay)){
+                    myState.selection.way = newWay;
+
+                    myState.dragoffx = -mouse.x;
+                    myState.dragoffy = -mouse.y;
+                } else {
+                    return;
+                }
+
+                var cross = crossElem( myState.selection, myState.polygons );
+
+                if( cross.resp ){
+                    myState.selection.fill = 'red'
+                    myState.polygons[ cross.indexCross ].fill = 'red'
+                    myState.returnValue = true;
+                } else{
+                    myState.returnValue = false;
+                    myState.polygons.map( function ( elem: any, i:number ) {
+                        let fill:string = polygonsInit[i].fill;
+                        elem.fill = fill;
+                    });
+                }
+                myState.valid = false; // Something's dragging so we must redraw
             }
-        }
+        }, true);
+        canvas.addEventListener('mouseup', function(e: any) {
 
-        // havent returned means we have failed to select anything.
-        // If there was an object selected, we deselect it
-        if (!myState.selection) {
-            myState.selection = null;
-            myState.valid = false; // Need to clear the old selection border
-        }
-    }, true);
-    canvas.addEventListener('mousemove', function(e) {
-        if (myState.dragging){
-            var mouse = myState.getMouse(e);
-
-            var newWay = new Array();
-
-            for( var i = 0; i < myState.selection.way.length; i++ ){
-                newWay[i] = new Array();
-                newWay[i][0] = myState.selection.way[i][0] + myState.dragoffx + mouse.x;
-                newWay[i][1] = myState.selection.way[i][1] + myState.dragoffy + mouse.y;
-            }
-
-            if(!myState.isEnd(newWay)){
-                myState.selection.way = newWay;
-
-                myState.dragoffx = -mouse.x;
-                myState.dragoffy = -mouse.y;
-            } else {
-                return;
-            }
-
-            var cross = crossElem( myState.selection, myState.polygons );
-
-            if( cross.resp ){
-                myState.selection.fill = 'red'
-                myState.polygons[ cross.indexCross ].fill = 'red'
-                myState.returnValue = true;
-            } else{
+            if( myState.returnValue ){
+                console.log( myState.startPosition )
+                myState.selection.way = myState.startPosition;
                 myState.returnValue = false;
-                myState.polygons.map( function ( elem, i ) {
+                myState.polygons.map( function ( elem: any, i: number ) {
                     elem.fill = polygonsInit[i].fill;
                 });
-            }
-            myState.valid = false; // Something's dragging so we must redraw
-        }
-    }, true);
-    canvas.addEventListener('mouseup', function(e) {
+                myState.valid = false;
+            };
+            myState.draw();
+            myState.dragging = false;
+        }, false);
+        window.requestAnimationFrame( myState.draw.bind(this) );
+    }
 
-        if( myState.returnValue ){
-            console.log( myState.startPosition )
-            myState.selection.way = myState.startPosition;
-            myState.returnValue = false;
-            myState.polygons.map( function ( elem, i ) {
-                elem.fill = polygonsInit[i].fill;
-            });
-            myState.valid = false;
-        };
-        myState.draw();
-        myState.dragging = false;
-    }, false);
+    addPolygon(polygon: object) {
+        this.polygons.push(polygon);
+        this.valid = false;
+    }
 
-    this.selectionColor = '#CC0000';
-    this.selectionWidth = 2;
-    this.interval = 33;
-    //setInterval(function() { myState.draw(); }, myState.interval);
-
-    window.requestAnimationFrame( myState.draw.bind(this) )
-}
-
-CanvasState.prototype.addPolygon = function(polygon) {
-    this.polygons.push(polygon);
-    this.valid = false;
-}
-
-CanvasState.prototype.clear = function() {
-    this.ctx.clearRect(0, 0, this.width, this.height);
+    clear () {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+    }
 }
 
 CanvasState.prototype.draw = function() {
@@ -203,7 +195,7 @@ CanvasState.prototype.isEnd = function (newWay) {
 }
 
 function init(polygonsInit) {
-    var canvas = document.getElementById('canvas');
+    var canvas: any = document.getElementById('canvas');
 
     window.addEventListener('resize', resizeCanvas, false);
 
@@ -219,7 +211,7 @@ function init(polygonsInit) {
 
     function drawStuff(){
         countElem = 0;
-        s = new CanvasState(canvas);
+        var s: object = new CanvasState(canvas);
         if( polygonsInit.length ){
             for ( var i = 0; i < polygonsInit.length; i++ ) {
                 s.addPolygon(new Polygon( polygonsInit[i].way, polygonsInit[i].fill ));
@@ -228,7 +220,7 @@ function init(polygonsInit) {
     }
 }
 
-var polygonsInit = [
+const polygonsInit: any = [
     {
         way: [
             [10,10],
@@ -257,36 +249,35 @@ var polygonsInit = [
         ],
         fill: 'green'
     }
-]
+];
 
-init( polygonsInit )
+init( polygonsInit );
 ////////////////////////////////////////////////
 /// алгоритм проверки пересечения двух линий ///
 ////////////////////////////////////////////////
-function crossLine( l1, l2 ) {
+function crossLine( l1:Array<number>, l2:Array<number> ): boolean {
 
-    var dx1 = l1[1][0] - l1[0][0],
-        dy1 = l1[1][1] - l1[0][1],
-        dx2 = l2[1][0] - l2[0][0],
-        dy2 = l2[1][1] - l2[0][1],
-        x = dy1 * dx2 - dy2 * dx1;
+    let dx1:number = l1[1][0] - l1[0][0],
+        dy1:number = l1[1][1] - l1[0][1],
+        dx2:number = l2[1][0] - l2[0][0],
+        dy2:number = l2[1][1] - l2[0][1],
+        x:number = dy1 * dx2 - dy2 * dx1;
 
     if( !x || !dx2 || !dx1|| !dy1|| !dy2) {
         return false;
     }
 
-    var y = l2[0][0] * l2[1][1] - l2[0][1] * l2[1][0];
+    let y: number = l2[0][0] * l2[1][1] - l2[0][1] * l2[1][0];
     x = ((l1[0][0] * l1[1][1] - l1[0][1] * l1[1][0]) * dx2 - y * dx1) / x;
     y = (dy2 * x - y) / dx2;
 
-    return ((l1[0][0] <= x && l1[1][0] >= x) || (l1[1][0] <= x && l1[0][0] >= x)) &&
-        ((l2[0][0] <= x && l2[1][0] >= x) || (l2[1][0] <= x && l2[0][0] >= x));
+    return ((l1[0][0] <= x && l1[1][0] >= x) || (l1[1][0] <= x && l1[0][0] >= x)) && ((l2[0][0] <= x && l2[1][0] >= x) || (l2[1][0] <= x && l2[0][0] >= x));
 }
 
 ////////////////////////////////////////////
 /// проверка пересечения линий полигонов ///
 ////////////////////////////////////////////
-function crossElem( elem, allElems ) {
+function crossElem( elem: any, allElems: Array<any> ) {
     for (  var i = 0; i < allElems.length; i++ ) {
         if ( allElems[i].id == elem.id ) {
             continue;
