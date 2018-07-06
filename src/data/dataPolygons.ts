@@ -1,6 +1,6 @@
 import Polygon from '../classes/polygon'
 
-const polygonsInit: Array<object> = [
+const polygonsInit: Array<any> = [
     {
         way: [
             [10,10],

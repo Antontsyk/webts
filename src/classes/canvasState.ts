@@ -5,7 +5,7 @@ export default class CanvasState {
     ctx: any;
 
     valid:boolean = false;
-    polygons: Array<object> = [];
+    polygons: Array<any> = [];
     selection: object;
     paths: Array<any> = [];
 
@@ -48,6 +48,7 @@ export default class CanvasState {
     getMouse ( e:Event ) :object {
         var canvas = this.canvas;
         var rect = canvas.getBoundingClientRect();
+
         return {
             x: Math.round(e.clientX - rect.left),
             y: Math.round(e.clientY - rect.top)
@@ -63,7 +64,7 @@ export default class CanvasState {
 
             let _this: any = this;
 
-            this.polygons.forEach(function ( polygon:object ) {
+            this.polygons.forEach(function ( polygon:any ) {
                 let path: any = new Path2D();
 
                 polygon.way.forEach(function (elem:Array<number>) {
