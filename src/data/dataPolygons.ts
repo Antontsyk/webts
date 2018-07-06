@@ -1,4 +1,6 @@
-export const polygonsInit: Array<object> = [
+import Polygon from '../classes/polygon'
+
+const polygonsInit: Array<object> = [
     {
         way: [
             [10,10],
@@ -28,3 +30,11 @@ export const polygonsInit: Array<object> = [
         fill: 'green'
     }
 ];
+
+const Polygons: Array<Polygon> = [];
+
+polygonsInit.forEach(function ( elem: object, i:number ) {
+    Polygons.push( new Polygon( elem.way, elem.fill, i ) );
+});
+
+export default Polygons;

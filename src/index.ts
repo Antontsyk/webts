@@ -1,12 +1,9 @@
-import { Polygon } from "./classes/polygon";
-import { CanvasState } from "./classes/canvasState";
-import { polygonsInit } from "./data/dataPolygons";
-
-let paths: Array<object> = [];
+import Polygons from "./data/dataPolygons"
+import CanvasState from "./classes/canvasState";
 
 
 
-function init(polygonsInit:Array<object>) {
+function init() {
     var canvas: any = document.getElementById('canvas');
 
     window.addEventListener('resize', resizeCanvas, false);
@@ -19,16 +16,9 @@ function init(polygonsInit:Array<object>) {
 
     resizeCanvas();
 
-    var polygonsInit = polygonsInit;
-
     function drawStuff(){
-        var s: any = new CanvasState(canvas);
-        if( polygonsInit.length ){
-            for ( var i = 0; i < polygonsInit.length; i++ ) {
-                s.addPolygon(new Polygon( polygonsInit[i].way, polygonsInit[i].fill, i ));
-            }
-        }
+        var state: any = new CanvasState(canvas, Polygons);
     }
 }
 
-init( polygonsInit );
+init();
