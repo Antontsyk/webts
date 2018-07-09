@@ -48,8 +48,7 @@ export default class CanvasState {
                 path.lineTo( point.x, point.y );
             });
             path.closePath();
-            console.log(this.context.fillStyle);
-            this.selectionIndexElement == index || this.context.fillStyle == 'red' ? this.context.fillStyle = 'red' : this.context.fillStyle = polygon.fill;
+            this.selectionIndexElement == index ? this.context.fillStyle = 'red' : this.context.fillStyle = polygon.fill;
             this.context.fill(path);
             polygon.path = path;
         });
