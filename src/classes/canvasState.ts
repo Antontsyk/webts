@@ -1,5 +1,3 @@
-import Polygon from 'polygon'
-
 export default class CanvasState {
     private canvas: HTMLElement;
     private width: number;
