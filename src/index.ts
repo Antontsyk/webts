@@ -1,10 +1,10 @@
 import Polygons from "./data/dataPolygons"
 import CanvasState from "./classes/canvasState";
 
+console.log(Polygons)
 
-
-function init() {
-    var canvas: any = document.getElementById('canvas');
+function init():void {
+    const canvas: any = document.getElementById('canvas');
 
     window.addEventListener('resize', resizeCanvas, false);
 
@@ -17,7 +17,7 @@ function init() {
     resizeCanvas();
 
     function drawStuff(){
-        var state: any = new CanvasState(canvas, Polygons);
+        let state: any = new CanvasState(canvas, Polygons);
     }
 }
 

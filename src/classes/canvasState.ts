@@ -1,87 +1,57 @@
+import Point from "./point";
+
 export default class CanvasState {
     canvas: HTMLElement;
     width: number;
     height: number;
-    ctx: any;
-
-    valid:boolean = false;
+    context: any;
     polygons: Array<any> = [];
-    selection: object;
-    paths: Array<any> = [];
+    selectionIndexElement: number = -1;
 
-    constructor( canvas: any  , Polygons:Array<any> ){
+    constructor ( canvas: any, Polygons: Array<any> ) {
         this.canvas = canvas;
         this.width = canvas.width;
         this.height = canvas.height;
-        this.ctx = canvas.getContext('2d');
+        this.context = canvas.getContext('2d');
         this.polygons = Polygons;
-        const myState: any = this;
-
-        canvas.addEventListener('mousedown', function(e: Event) {
-            var mouse = myState.getMouse(e);
-            var mx = mouse.x;
-            var my = mouse.y;
-            var polygons = myState.polygons;
-            var l = polygons.length;
-
-            myState.paths.forEach(function ( path:any, i:number ) {
-                if ( myState.ctx.isPointInPath(path, mx, my)) {
-                    console.log('Canvas element found, id = ' + i );
-                    myState.valid = false;
-                    return;
-                }
-            });
-
-            if (!myState.selection) {
-                myState.selection = null;
-                myState.valid = false;
-            }
-        }, true);
-
-        window.requestAnimationFrame( myState.draw.bind(this) );
+        this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this), true);
+        this.draw();
     }
 
-    clear () : void {
-        this.ctx.clearRect(0, 0, this.width, this.height);
+    private onMouseDown ( event: MouseEvent ) {
+        const mouse: any = this.getMouse( event );
+        const mx = mouse.x;
+        const my = mouse.y;
+        this.selectionIndexElement = this.polygons.findIndex( ( polygon: any ) => {
+            return this.context.isPointInPath( polygon.path, mx, my )
+        });
+        this.selectionIndexElement != -1 ? this.draw() : '';
     }
 
-    getMouse ( e:Event ) :object {
-        var canvas = this.canvas;
-        var rect = canvas.getBoundingClientRect();
+    clear (): void {
+        this.context.clearRect(0, 0, this.width, this.height);
+    }
 
+    getMouse ( event: MouseEvent ): object {
+        const rect = this.canvas.getBoundingClientRect();
         return {
-            x: Math.round(e.clientX - rect.left),
-            y: Math.round(e.clientY - rect.top)
+            x: Math.round(event.clientX - rect.left),
+            y: Math.round(event.clientY - rect.top)
         };
     }
 
-    draw () : void {
-        if (!this.valid) {
-            var ctx = this.ctx;
-            var polygons = this.polygons;
-            this.clear();
-            this.paths = [];
-
-            let _this: any = this;
-
-            this.polygons.forEach(function ( polygon:any ) {
-                let path: any = new Path2D();
-
-                polygon.way.forEach(function (elem:Array<number>) {
-                    let x: number = elem[0];
-                    let y: number = elem[1];
-                    path.lineTo( x, y );
-                })
-
-                path.closePath();
-                ctx.fillStyle = polygon.fill;
-                ctx.fill(path);
-
-                _this.paths.push(path);
+    draw (): void {
+        this.clear();
+        this.polygons.forEach(( polygon: any, index: number ) => {
+            let path: any = new Path2D();
+            polygon.way.forEach((point: Point) => {
+                path.lineTo( point.x, point.y );
             });
-
-            this.valid = true;
-        }
-        window.requestAnimationFrame( this.draw.bind( this ) )
+            path.closePath();
+            console.log(this.context.fillStyle);
+            this.selectionIndexElement == index || this.context.fillStyle == 'red' ? this.context.fillStyle = 'red' : this.context.fillStyle = polygon.fill;
+            this.context.fill(path);
+            polygon.path = path;
+        });
     }
 }

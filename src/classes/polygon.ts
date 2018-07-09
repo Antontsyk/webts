@@ -1,9 +1,11 @@
+import Point from "./point";
+
 export default class Polygon {
-    id: number;
-    way: Array<Array<number>>;
-    fill: string;
-    constructor( way: Array<Array<number>>, fill: string, id:number ){
-        this.id = id;
+    public way: Array<Point>;
+    public fill: string;
+    public path: any;
+
+    constructor( way: Array<Point>, fill: string ){
         this.way = way;
         this.fill = fill || '#AAAAAA';
     }

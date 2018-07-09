@@ -1,40 +1,34 @@
 import Polygon from '../classes/polygon'
+import Point from "../classes/point";
 
-const polygonsInit: Array<any> = [
-    {
-        way: [
-            [10,10],
-            [100,50],
-            [40,110]
+const Polygons: Array<Polygon> = [
+    new Polygon( [
+            new Point(10,10),
+            new Point(100,50),
+            new Point(40,110)
         ],
-        fill: 'orange'
-    },
-    {
-        way: [
-            [10,130],
-            [100,150],
-            [120,180],
-            [60,200],
-            [20,180]
+        'orange'
+    ),
+    new Polygon(
+        [
+            new Point(10,130),
+            new Point(100,150),
+            new Point(120,180),
+            new Point(60,200),
+            new Point(20,180)
         ],
-        fill: 'black'
-    },
-    {
-        way: [
-            [10,230],
-            [100,200],
-            [140,300],
-            [80,250],
-            [40,300]
+        'black'
+    ),
+    new Polygon(
+        [
+            new Point(10,230),
+            new Point(100,200),
+            new Point(140,300),
+            new Point(80,250),
+            new Point(40,300)
         ],
-        fill: 'green'
-    }
+        'green'
+    )
 ];
-
-const Polygons: Array<Polygon> = [];
-
-polygonsInit.forEach(function ( elem: object, i:number ) {
-    Polygons.push( new Polygon( elem.way, elem.fill, i ) );
-});
 
 export default Polygons;
