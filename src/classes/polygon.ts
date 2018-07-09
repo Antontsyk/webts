@@ -4,6 +4,7 @@ export default class Polygon {
     public way: Array<Point>;
     public fill: string;
     public path: any;
+    public intersection: boolean = false;
 
     constructor( way: Array<Point>, fill: string ){
         this.way = way;
@@ -22,9 +23,9 @@ export default class Polygon {
     }
 
     public updatePolygon(deltaX: number, deltaY: number) {
-        this.way.map(function ( elem: any ) {
-            elem.x += deltaX;
-            elem.y += deltaY;
+        this.way.map(( point: Point ) => {
+            point.x += deltaX;
+            point.y += deltaY;
         });
         this.updatePath();
     }

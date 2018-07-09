@@ -1,11 +1,14 @@
+import Point from "./point";
+import Polygon from "./polygon";
+
 export default class CanvasState {
     private canvas: HTMLElement;
     private width: number;
     private height: number;
     private context: any;
     private polygons: Array<any> = [];
-    private selectionIndexElement: number = -1;
-    private deltaMouse: any = { x: 0, y: 0 };
+    private selection: Polygon = null;
+    private deltaMouse: Point = { x: 0, y: 0 };
 
     constructor ( canvas: any, Polygons: Array<any> ) {
         this.canvas = canvas;
@@ -24,10 +27,16 @@ export default class CanvasState {
         const mx: number = mouse.x;
         const my: number = mouse.y;
         this.deltaMouse = { x: -mx, y: -my };
-        this.selectionIndexElement = this.polygons.findIndex( ( polygon: any ) => {
+        const selectionIndexElement: number = this.polygons.findIndex( ( polygon: any ) => {
             return this.context.isPointInPath( polygon.path, mx, my )
         });
-        this.selectionIndexElement != -1 ? this.draw() : '';
+
+        if( selectionIndexElement != -1  ) {
+            this.selection = this.polygons[ selectionIndexElement ];
+            this.draw();
+        } else {
+            this.selection = null;
+        }
     }
 
     private onMouseMove ( event: MouseEvent ) {
@@ -35,14 +44,16 @@ export default class CanvasState {
         const deltaX: number = this.deltaMouse.x + mouse.x;
         const deltaY: number = this.deltaMouse.y + mouse.y;
         this.deltaMouse = { x: -mouse.x, y: -mouse.y };
-        if( this.selectionIndexElement != -1 ){
-            this.polygons[ this.selectionIndexElement ].updatePolygon( deltaX, deltaY );
+        if( this.selection != null ){
+            this.selection.updatePolygon( deltaX, deltaY );
+            this.intersectionPolygon();
             this.draw();
         }
     }
 
     private onMouseUp (){
-        this.selectionIndexElement = -1;
+        this.selection = null;
+        this.draw();
     }
 
     private clear (): void {
@@ -60,8 +71,30 @@ export default class CanvasState {
     private draw (): void {
         this.clear();
         this.polygons.forEach(( polygon: any, index: number ) => {
-            this.selectionIndexElement == index ? this.context.fillStyle = 'red' : this.context.fillStyle = polygon.fill;
+            this.selection == polygon || polygon.intersection ? this.context.fillStyle = 'red' : this.context.fillStyle = polygon.fill;
             this.context.fill(polygon.path);
+        });
+    }
+
+    private intersectionPolygon () {
+        this.polygons.forEach(( polygon: Polygon ) => {
+            if( polygon != this.selection ){
+                polygon.intersection = false;
+                this.selection.way.forEach(( way: any ) => {
+                    if( this.context.isPointInPath( polygon.path, way.x, way.y ) ){
+                        polygon.intersection = true;
+                        return;
+                    }
+                });
+                polygon.way.forEach(( way: any ) => {
+                    if( this.context.isPointInPath( this.selection.path, way.x, way.y ) ){
+                        polygon.intersection = true;
+                        return;
+                    }
+                });
+            }
+
+            console.log( polygon.intersection );
         });
     }
 }
