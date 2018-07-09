@@ -1,12 +1,13 @@
-import Point from "./point";
+import Polygon from 'polygon'
 
 export default class CanvasState {
-    public canvas: HTMLElement;
-    public width: number;
-    public height: number;
-    public context: any;
-    public polygons: Array<any> = [];
-    public selectionIndexElement: number = -1;
+    private canvas: HTMLElement;
+    private width: number;
+    private height: number;
+    private context: any;
+    private polygons: Array<any> = [];
+    private selectionIndexElement: number = -1;
+    private deltaMouse: any = { x: 0, y: 0 };
 
     constructor ( canvas: any, Polygons: Array<any> ) {
         this.canvas = canvas;
@@ -15,24 +16,42 @@ export default class CanvasState {
         this.context = canvas.getContext('2d');
         this.polygons = Polygons;
         this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this), true);
+        this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this), true);
+        this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this), true);
         this.draw();
     }
 
     private onMouseDown ( event: MouseEvent ) {
         const mouse: any = this.getMouse( event );
-        const mx = mouse.x;
-        const my = mouse.y;
+        const mx: number = mouse.x;
+        const my: number = mouse.y;
+        this.deltaMouse = { x: -mx, y: -my };
         this.selectionIndexElement = this.polygons.findIndex( ( polygon: any ) => {
             return this.context.isPointInPath( polygon.path, mx, my )
         });
         this.selectionIndexElement != -1 ? this.draw() : '';
     }
 
-    clear (): void {
+    private onMouseMove ( event: MouseEvent ) {
+        const mouse: any = this.getMouse( event );
+        const deltaX: number = this.deltaMouse.x + mouse.x;
+        const deltaY: number = this.deltaMouse.y + mouse.y;
+        this.deltaMouse = { x: -mouse.x, y: -mouse.y };
+        if( this.selectionIndexElement != -1 ){
+            this.polygons[ this.selectionIndexElement ].updatePolygon( deltaX, deltaY );
+            this.draw();
+        }
+    }
+
+    private onMouseUp (){
+        this.selectionIndexElement = -1;
+    }
+
+    private clear (): void {
         this.context.clearRect(0, 0, this.width, this.height);
     }
 
-    getMouse ( event: MouseEvent ): object {
+    private getMouse ( event: MouseEvent ): object {
         const rect = this.canvas.getBoundingClientRect();
         return {
             x: Math.round(event.clientX - rect.left),
@@ -40,17 +59,11 @@ export default class CanvasState {
         };
     }
 
-    draw (): void {
+    private draw (): void {
         this.clear();
         this.polygons.forEach(( polygon: any, index: number ) => {
-            let path: any = new Path2D();
-            polygon.way.forEach((point: Point) => {
-                path.lineTo( point.x, point.y );
-            });
-            path.closePath();
             this.selectionIndexElement == index ? this.context.fillStyle = 'red' : this.context.fillStyle = polygon.fill;
-            this.context.fill(path);
-            polygon.path = path;
+            this.context.fill(polygon.path);
         });
     }
 }
