@@ -1,12 +1,12 @@
 import Point from "./point";
 
 export default class CanvasState {
-    canvas: HTMLElement;
-    width: number;
-    height: number;
-    context: any;
-    polygons: Array<any> = [];
-    selectionIndexElement: number = -1;
+    public canvas: HTMLElement;
+    public width: number;
+    public height: number;
+    public context: any;
+    public polygons: Array<any> = [];
+    public selectionIndexElement: number = -1;
 
     constructor ( canvas: any, Polygons: Array<any> ) {
         this.canvas = canvas;
