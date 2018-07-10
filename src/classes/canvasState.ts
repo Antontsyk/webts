@@ -27,28 +27,27 @@ export default class CanvasState {
         const mx: number = mouse.x;
         const my: number = mouse.y;
         this.deltaMouse = { x: -mx, y: -my };
-        const selectionIndexElement: number = this.polygons.findIndex( ( polygon: any ) => {
+        this.selection = this.polygons.find( ( polygon: Polygon ) => {
             return this.context.isPointInPath( polygon.path, mx, my )
         });
 
-        if( selectionIndexElement != -1  ) {
-            this.selection = this.polygons[ selectionIndexElement ];
+        if (this.selection) {
             this.draw();
-        } else {
-            this.selection = null;
         }
     }
 
     private onMouseMove ( event: MouseEvent ) {
+        if (!this.selection) {
+            return;
+        }
+
         const mouse: any = this.getMouse( event );
         const deltaX: number = this.deltaMouse.x + mouse.x;
         const deltaY: number = this.deltaMouse.y + mouse.y;
         this.deltaMouse = { x: -mouse.x, y: -mouse.y };
-        if( this.selection != null ){
-            this.selection.updatePolygon( deltaX, deltaY );
-            this.intersectionPolygon();
-            this.draw();
-        }
+        this.selection.updatePolygon( deltaX, deltaY );
+        this.intersectionPolygon();
+        this.draw();
     }
 
     private onMouseUp (){
@@ -70,31 +69,91 @@ export default class CanvasState {
 
     private draw (): void {
         this.clear();
-        this.polygons.forEach(( polygon: any, index: number ) => {
-            this.selection == polygon || polygon.intersection ? this.context.fillStyle = 'red' : this.context.fillStyle = polygon.fill;
+        this.polygons.forEach(( polygon: Polygon, index: number ) => {
+            polygon.intersection.length ? this.context.fillStyle = 'red' : this.context.fillStyle = polygon.fill;
             this.context.fill(polygon.path);
         });
     }
 
     private intersectionPolygon () {
-        this.polygons.forEach(( polygon: Polygon ) => {
-            if( polygon != this.selection ){
-                polygon.intersection = false;
-                this.selection.way.forEach(( way: any ) => {
-                    if( this.context.isPointInPath( polygon.path, way.x, way.y ) ){
-                        polygon.intersection = true;
-                        return;
-                    }
-                });
-                polygon.way.forEach(( way: any ) => {
-                    if( this.context.isPointInPath( this.selection.path, way.x, way.y ) ){
-                        polygon.intersection = true;
-                        return;
-                    }
-                });
+
+        let indexSelectionElement: number = this.polygons.indexOf( this.selection );
+
+        this.polygons.forEach(( polygon: Polygon, index: number ) => {
+
+            if (polygon == this.selection) {
+                return;
             }
 
-            console.log( polygon.intersection );
+            let isInterSelection: boolean = this.selection.way.some(( way: Point ) => {
+               return this.context.isPointInPath( polygon.path, way.x, way.y );
+            });
+
+            let isInterPolygon: boolean = polygon.way.some( ( way: Point ) => {
+                return this.context.isPointInPath( this.selection.path, way.x, way.y );
+            });
+
+            console.log( isInterPolygon, isInterSelection )
+
+            if( isInterPolygon || isInterSelection ){
+                if( this.selection.intersection.indexOf( index ) == -1 ){
+                    this.selection.intersection.push(index)
+                }
+                if( polygon.intersection.indexOf( indexSelectionElement ) == -1 ){
+                    polygon.intersection.push( indexSelectionElement );
+                }
+            } else {
+                if( this.selection.intersection.indexOf( index ) != -1 ){
+                    this.selection.intersection.splice( this.selection.intersection.indexOf( index ) , 1 );
+                }
+                if( polygon.intersection.indexOf( indexSelectionElement ) != -1 ){
+                    polygon.intersection.splice( polygon.intersection.indexOf( indexSelectionElement ) , 1 );
+                }
+            }
+
+
+            /*for ( let i = 0; i < this.selection.way.length; i++ ){
+                let way: Point = this.selection.way[i];
+                if( this.context.isPointInPath( polygon.path, way.x, way.y ) ){
+                    if( this.selection.intersection.indexOf( index ) == -1 ){
+                        this.selection.intersection.push(index)
+                    }
+                    if( polygon.intersection.indexOf( indexSelectionElement ) == -1 ){
+                        polygon.intersection.push( indexSelectionElement );
+                    }
+
+                    return;
+                } else {
+                    if( this.selection.intersection.indexOf( index ) != -1 ){
+                        this.selection.intersection.splice( this.selection.intersection.indexOf( index ) , 1 );
+                    }
+                    if( polygon.intersection.indexOf( indexSelectionElement ) != -1 ){
+                        polygon.intersection.splice( polygon.intersection.indexOf( indexSelectionElement ) , 1 );
+                    }
+                }
+            }*/
+
+            /*polygon.way.forEach(( way: Point ) => {
+                if( this.context.isPointInPath( this.selection.path, way.x, way.y ) ){
+                    if( this.selection.intersection.indexOf( index ) == -1 ){
+                        this.selection.intersection.push(index)
+                    }
+                    if( polygon.intersection.indexOf( indexSelectionElement ) == -1 ){
+                        polygon.intersection.push( indexSelectionElement );
+                    }
+                    return;
+                } else {
+                    if( this.selection.intersection.indexOf( index ) != -1 ){
+                        this.selection.intersection.splice( this.selection.intersection.indexOf( index ) , 1 );
+                    }
+                    if( polygon.intersection.indexOf( indexSelectionElement ) != -1 ){
+                        polygon.intersection.splice( polygon.intersection.indexOf( indexSelectionElement ) , 1 );
+                    }
+                }
+            });*/
+
+            console.log( this.selection.intersection, polygon.intersection, index );
         });
     }
+
 }

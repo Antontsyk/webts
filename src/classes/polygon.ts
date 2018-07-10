@@ -4,7 +4,7 @@ export default class Polygon {
     public way: Array<Point>;
     public fill: string;
     public path: any;
-    public intersection: boolean = false;
+    public intersection: Array<number> = [];
 
     constructor( way: Array<Point>, fill: string ){
         this.way = way;
